@@ -1,0 +1,22 @@
+Changelog för strecc.
+
+V1
+---------------------------------
+- Första versionen.
+
+---------------------------------
+V1.1
+---------------------------------
+- Varor har nu ett unikt ID för att systemet ska kunna hålla reda på
+dem.
+- Man kan logga ut genom att lägga kortet mot läsaren när man är
+inloggad.
+- Man kan lägga till varor.
+- Infört administratörer.
+- Bara admins kan lägga till nya användare.
+
+---------------------------------
+v1.2
+---------------------------------
+- Förbättrade transaktionsloggar. Loggarna kommer bli enkla för strecc
+att läsa i framtiden för att sammanställa rapporter.

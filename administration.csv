@@ -1,0 +1,10 @@
+Barcode:,Function:
+9000,logout
+9001,shutdown
+9002,adduser
+9003,updatelogin
+9004,addbalance
+9005,undotransaction
+9006,additem
+9007,removeitem
+9008,updateitemprice
