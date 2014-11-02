@@ -20,3 +20,16 @@ v1.2
 ---------------------------------
 - Förbättrade transaktionsloggar. Loggarna kommer bli enkla för strecc
 att läsa i framtiden för att sammanställa rapporter.
+- Changelog på framsidan när man startar strecc.
+- Cancel funkar för de flesta funktioner.
+
+
+---------------------------------
+v1.3
+---------------------------------
+- Kredit minskat till 50kr.
+- Nytt system för användargränssnitt.
+- Alla funktioner har anpassats för det nya systemet.
+- Mainfilen helt omskriven i städsyfte.
+- Förberedelser för att kunna byta csv-bibliotek i framtiden.
+- Modularisering för att enklare kunna arbeta flera på programmet.

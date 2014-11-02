@@ -114,3 +114,23 @@ struct User *getUser(char *barcode)
   if(userIsAdminString) free(userIsAdminString);
   return NULL;
 }
+
+//Return 0 if there is a user with barcode. Otherwise -1.
+int isItem(char *barcode)
+{
+  return find(itemfile, barcode, itemBarcodeColumn);
+}
+
+//Return 0 if there is an item with barcode. Otherwise -1.
+int isUser(char *barcode)
+{
+  return find(userfile, barcode, userBarcodeColumn);
+}
+
+//Return 0 if there is an admin function with barcode. Otherwise -1.
+int isAdminfunc(char *barcode)
+{
+  int rc = 0;
+  rc = find(administrationfile, barcode, administrationIdColumn);
+  return rc;
+}

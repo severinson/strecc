@@ -1,7 +1,7 @@
 #ifndef _administration_h
 #define _administration_h
 
-#define cancelcode "00000"
+#define cancelcode "9009"
 
 //Will undo the last transaction for user
 int undoTransaction(struct User *user);

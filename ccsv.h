@@ -2,7 +2,7 @@
 #define _ccsv_h
 
 //The largest string the system can use.
-#define MAX_DATA 80
+#define MAX_DATA 200
 
 //List items in file
 int listitems(char *filename);

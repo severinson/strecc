@@ -24,9 +24,11 @@ int undoTransaction(struct User *user)
   check(userRow != -1, "Hittade inte användaren i användarfilen.");
 
   //Get last transaction in log
-  printf("Ångra köp.\n");
+  setUi("bottom", "Ångrar köp. Vänligen vänta...");
+  rc = refreshUi();
+
   while(i != -1){
-    i = findNext(transactionfile, user->userId, transactionUserColumn);
+    i = findNext(transactionfile, user->userId, transactionUserIdColumn);
     if(i != -1) transactionRow = i;
   }
 
@@ -52,7 +54,9 @@ int undoTransaction(struct User *user)
   user->balance += price;
   sprintf(balanceString, "%d", user->balance);
   rc = editCell(userfile, userRow, userBalanceColumn, balanceString);
-  printf("[%s] ångrat.\n[SALDO]:%d\n", itemName, user->balance);
+
+  setUi("top", "Köp av %s ångrat. Nytt saldo: %d", itemName, user->balance);
+  setUi("bottom", "Skanna vara eller funktion...");
 
   //Log
   info("[UNDO]:%s (%s):%s", user->name, user->userId, itemName);
@@ -84,14 +88,15 @@ int addUser(struct User *user)
 
   //Check that current user is admin
   if(user->isAdmin != 1){
-    printf("Bara admin kan lägga till nya användare. Den här händelsen har rapporterats.\n");
+    setUi("top", "Bara admin kan lägga till nya användare. Den här händelsen har rapporterats.");
     goto error;
   }
 
-  printf("Lägg till ny användare.\n");
+  setUi("top", "Lägg till ny användare.");
 
   //Collect username
-  printf("Ange användarnamn på tangentbordet.\n");
+  setUi("bottom", "Ange användarnamn...");
+  refreshUi();
   ch = fgets(userName, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa användarnamn.");
 
@@ -101,19 +106,20 @@ int addUser(struct User *user)
 
   rc = strncmp(userName, cancelcode, MAX_DATA);
   if(rc == 0){
-    printf("Avbryt\n");
+    setUi("top", "Avbryt");
     goto error;
   }
 
   //Check that username doesn't match existing user
   rc = find(userfile, userName, userNameColumn);
   if(rc != -1){
-    printf("Användarnamnet är upptaget.\n");
+    setUi("top", "Användarnamnet är upptaget.");
     goto error;
   }
 
   //Collect user login
-  printf("Ange användarlogin genom att lägga ditt kårkort mot läsaren.\n");
+  setUi("bottom", "Ange användarlogin genom att lägga ditt kårkort mot läsaren...");
+  refreshUi();
   ch = fgets(userLogin, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa login.");
 
@@ -124,21 +130,21 @@ int addUser(struct User *user)
   //Check that login doesn't match an existing user
   rc = find(userfile, userLogin, userBarcodeColumn);
   if(rc != -1){
-    printf("Användarlogin är upptaget.\n");
+    setUi("top", "Användarlogin är upptaget.");
     goto error;
   }
 
   //Check that login doesn't match an item
   rc = find(itemfile, userLogin, itemBarcodeColumn);
   if(rc != -1){
-    printf("Du får inte använda en varas streckkod.\n");
+    setUi("top", "Du får inte använda en varas streckkod.");
     goto error;
   }
 
   //Check that login doesn't match an admin function
   rc = find(administrationfile, userLogin, administrationIdColumn);
   if(rc != -1){
-    printf("Du får inte använda en administrationsfunktion.\n");
+    setUi("top", "Du får inte använda en administrationsfunktion.");
     goto error;
   }
 
@@ -155,7 +161,8 @@ int addUser(struct User *user)
   check(rc != -1, "Lyckades inte lägga till användaren i användarfilen.");
 
   info("[USERADD] %s (%s) added user %s (%s)", user->name, user->userId, userName, userIdString);
-  printf("Användaren har lagts till.\n");
+  setUi("top", "Användare %s har lagts till.", userName);
+  setUi("bottom", "Skanna vara eller funktion...");
 
   free(userName);
   free(userLogin);
@@ -185,9 +192,10 @@ int changeUserLogin(struct User *user)
   check(userRow != -1, "Hittade inte användaren i användarfilen.");
 
   //Collect new user login
-  printf("Byt login.\n");
+  setUi("top", "Byt login.");
 
-  printf("Ange användarlogin genom att lägga ditt kårkort mot läsaren.\n");
+  setUi("Bottom", "Ange användarlogin genom att lägga ditt kårkort mot läsaren.");
+  refreshUi();
   ch = fgets(userLogin, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa login.");
 
@@ -195,30 +203,39 @@ int changeUserLogin(struct User *user)
   stringLength = strlen(userLogin) - 1;
   if(userLogin[stringLength] == '\n') userLogin[stringLength] = '\0';
 
+  //Check for cancel code
+  rc = strncmp(userLogin, cancelcode, MAX_DATA);
+  if(rc == 0){
+    setUi("top", "Avbryt");
+    goto error;
+  }
+
   //Check that login doesn't match an existing user
   rc = find(userfile, userLogin, userBarcodeColumn);
   if(rc != -1){
-    printf("Användarlogin är upptaget.\n");
+    setUi("top", "Användarlogin är upptaget.");
     goto error;
   }
 
   //Check that login doesn't match an item
   rc = find(itemfile, userLogin, itemBarcodeColumn);
   if(rc != -1){
-    printf("Du får inte använda en varas streckkod.\n");
+    setUi("top", "Du får inte använda en varas streckkod.");
     goto error;
   }
 
   //Check that login doesn't match an admin function
   rc = find(administrationfile, userLogin, administrationIdColumn);
   if(rc != -1){
-    printf("Du får inte använda en administrationsfunktion.\n");
+    setUi("top", "Du får inte använda en administrationsfunktion.");
     goto error;
   }
   
   //Update the user file
   rc = editCell(userfile, userRow, userBarcodeColumn, userLogin);
   check(rc != -1, "Lyckades inte uppdatera login.");
+
+  setUi("top", "Login uppdaterat");
 
   free(userLogin);
 
@@ -245,9 +262,10 @@ int addBalance(struct User *user)
   check(userRow != -1, "Hittade inte användaren i användarfilen.");
 
   //Collect new user login
-  printf("Lägg till saldo.\n");
+  setUi("top", "Lägg till saldo.");
+  setUi("bottom", "Ange summa...");
+  refreshUi();
 
-  printf("Ange summa på tangentbordet.\n");
   ch = fgets(amountString, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa summa.");
 
@@ -255,10 +273,17 @@ int addBalance(struct User *user)
   stringLength = strlen(amountString) - 1;
   if(amountString[stringLength] == '\n') amountString[stringLength] = '\0';
 
+  //Check for cancel code
+  rc = strncmp(amountString, cancelcode, MAX_DATA);
+  if(rc == 0){
+    setUi("top", "Avbryt");
+    goto error;
+  }
+
   //Convert to int and sanity check
   amount = atoi(amountString);
   if(amount > 500){
-    printf("Du kan max lägga till 500kr åt gången.\n");
+    setUi("top", "Du kan max lägga till 500kr åt gången.");
     goto error;
   }
 
@@ -275,7 +300,7 @@ int addBalance(struct User *user)
   rc = editCell(userfile, userRow, userBalanceColumn, amountString);
   check(rc != -1, "Lyckades inte uppdatera balans.");
 
-  printf("Ditt saldo är nu %d.\n", user->balance);
+  setUi("top", "Saldo uppdaterat. Nytt saldo: %d", user->balance);
 
   free(amountString);
   return 0;
@@ -298,10 +323,12 @@ int addItem(struct User *user)
   char *itemIdString = malloc(MAX_DATA *sizeof(char));
   char *itemPriceString = malloc(MAX_DATA *sizeof(char));
 
-  printf("Lägg till ny vara.\n");
+  setUi("top", "Lägg till ny vara.");
 
   //Collect itemname
-  printf("Ange varans namn på tangentbordet.\n");
+  setUi("bottom", "Ange varans namn...");
+  refreshUi();
+
   ch = fgets(itemName, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa varans namn.");
 
@@ -309,15 +336,23 @@ int addItem(struct User *user)
   stringLength = strlen(itemName) - 1;
   if(itemName[stringLength] == '\n') itemName[stringLength] = '\0';
 
+  //Check for cancel code
+  rc = strncmp(itemName, cancelcode, MAX_DATA);
+  if(rc == 0){
+    setUi("top", "Avbryt");
+    goto error;
+  }
+
   //Check that itemname doesn't match existing item
   rc = find(itemfile, itemName, itemNameColumn);
   if(rc != -1){
-    printf("Namnet är upptaget.\n");
+    setUi("top", "Namnet är upptaget.");
     goto error;
   }
 
   //Collect item barcode
-  printf("Ange streckkod genom att skanna varans kod. Skanna en ledig kod på pappret om varan saknar kod.\n");
+  setUi("bottom", "Ange streckkod genom att skanna varans kod. Skanna en ledig kod på pappret om varan saknar kod...");
+  refreshUi();
   ch = fgets(itemBarcode, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa streckkod.");
 
@@ -325,35 +360,50 @@ int addItem(struct User *user)
   stringLength = strlen(itemBarcode) - 1;
   if(itemBarcode[stringLength] == '\n') itemBarcode[stringLength] = '\0';
 
+  //Check for cancel code
+  rc = strncmp(itemBarcode, cancelcode, MAX_DATA);
+  if(rc == 0){
+    setUi("top", "Avbryt");    
+    goto error;
+  }
+
   //Check that barcode doesn't match an existing item
   rc = find(itemfile, itemBarcode, itemBarcodeColumn);
   if(rc != -1){
-    printf("Streckkoden är upptagen.\n");
+    setUi("top", "Streckkoden är upptagen.");
     goto error;
   }
 
   //Check that barcode doesn't match a user
   rc = find(userfile, itemBarcode, userBarcodeColumn);
   if(rc != -1){
-    printf("Du får inte använda en användares login.\n");
+    setUi("top", "Du får inte använda en användares login.");
     goto error;
   }
 
   //Check that barcode doesn't match an admin function
   rc = find(administrationfile, itemBarcode, administrationIdColumn);
   if(rc != -1){
-    printf("Du får inte använda en administrationsfunktion.\n");
+    setUi("top", "Du får inte använda en administrationsfunktion.");
     goto error;
   }
 
-  //Collect item barcode
-  printf("Ange varans pris.\n");
+  //Collect item price
+  setUi("bottom", "Ange varans pris...");
+  refreshUi();
   ch = fgets(itemPriceString, MAX_DATA, stdin);
   check(ch != NULL, "Lyckades inte läsa priset.");
 
   //Remove newline
   stringLength = strlen(itemPriceString) - 1;
   if(itemPriceString[stringLength] == '\n') itemPriceString[stringLength] = '\0';
+
+  //Check for cancel code
+  rc = strncmp(itemPriceString, cancelcode, MAX_DATA);
+  if(rc == 0){
+    setUi("top", "Avbryt");    
+    goto error;
+  }
 
   //Generate unique itemID
   sprintf(itemIdString, "%d", itemId);
@@ -368,7 +418,8 @@ int addItem(struct User *user)
   check(rc != -1, "Lyckades inte lägga till varan i varufilen.");
 
   info("[ITEMADD] %s (%s) added item %s (%s)", user->name, user->userId, itemName, itemIdString);
-  printf("Varan har lagts till.\n");
+  setUi("top", "%s har lagts till.", itemName);
+  setUi("bottom", "Skanna vara eller funktion...");
 
   free(itemName);
   free(itemBarcode);

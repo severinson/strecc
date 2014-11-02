@@ -1,8 +1,6 @@
 #ifndef _logging_h
 #define _logging_h
 
-#define terminalRows 14
-
 //Update user balance with amount
 int updateUserBalance(struct User *user, struct Item *item);
 

@@ -1,7 +1,7 @@
 #ifndef _db_h
 #define _db_h
 
-#define MAX_DATA 80
+#define MAX_DATA 200
 
 #define itemfile "items.csv"
 #define userfile "users.csv"
@@ -65,4 +65,14 @@ struct Item *getItem(char *barcode);
 
 //Get user from database file
 struct User *getUser(char *barcode);
+
+//Return 0 if there is a user with barcode. Otherwise -1.
+int isItem(char *barcode);
+
+//Return 0 if there is an item with barcode. Otherwise -1.
+int isUser(char *barcode);
+
+//Return 0 if there is an admin function with barcode. Otherwise -1.
+int isAdminfunc(char *barcode);
+
 #endif

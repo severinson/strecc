@@ -6,39 +6,23 @@
 #include "db.h"
 #include "dbg.h"
 #include "ccsv.h"
-#include "strecc.h"
+//#include "strecc.h"
 #include "logging.h"
 #include "administration.h"
+#include "init.h"
+#include "ui.h"
 
-//Initialize the strecc system
-int initialize()
+struct User *user;
+
+//Login user with corresponding login
+int login(char *userlogin)
 {
-  int rc = 0;
+  check(user == NULL, "Kan inte logga in. En användare är redan inloggad.");
 
-  //Check that all required files are present and use correct CSV syntax
-  rc = isValidCsv(itemfile);
-  check(rc == 0, "Produktfilen items.csv finns inte eller har felaktig syntax.");
-  rc = getColumns(itemfile);
-  check(rc == itemFileColumns, "Produktfilen har felaktig syntax.")
-  printf("items.csv ser helt ok ut!\n");
-
-  rc = isValidCsv(userfile);
-  check(rc == 0, "Användarfilen users.csv finns inte eller har felaktig syntax.");
-  rc = getColumns(userfile);
-  check(rc == userFileColumns, "Användarenfilen har felaktig syntax.");
-  printf("users.csv ser helt ok ut!\n");
-
-  rc = isValidCsv(transactionfile);
-  check(rc == 0, "Transaktionsfilen transactions.csv finns inte eller har felaktig syntax.");
-  rc = getColumns(transactionfile);
-  check(rc == transactionFileColumns, "Transaktionsfilen har felaktig syntax,");
-  printf("transactions.csv ser helt ok ut!\n");
-
-  rc = isValidCsv(logfile);
-  check(rc == 0, "Logfilen strecclog.csv finns inte eller har felaktig syntax.");
-  rc = getColumns(logfile);
-  check(rc == logFileColumns, "Logfilen har felaktig syntax.");
-  printf("strecclog.csv ser inte helt ok ut!\n");
+  user = getUser(userlogin);
+  check(user != NULL, "Lyckades inte logga in.");
+  setUi("top", "Välkommen %s!", user->name);
+  setUi("bottom", "Skanna vara eller funktion...");
 
   return 0;
 
@@ -46,71 +30,66 @@ int initialize()
   return -1;
 }
 
-//Wait for a user to login
-struct User *login()
+int logout()
 {
-  //Print log-in message
-  clearTerminal(12);
-  printf("Logga in...\n");
+  check(user != NULL, "Kan inte logga ut. Ingen användare är inloggad.");
+  setUi("top", "Hejdå %s!", user->name);
+  setUi("bottom", "Logga in...");
 
-  //Wait for user input
-  char barcode[MAX_DATA] = "";
-  fgets(barcode, MAX_DATA, stdin);
-  
-  int barcodeLength = 0;
+  if(user->userId) free(user->userId);
+  if(user->name) free(user->name);
+  if(user->barcode) free(user->barcode);
+  if(user) free(user);
+  user = NULL;
 
-  //Remove newline
-  barcodeLength = strlen(barcode) - 1;
-  if(barcode[barcodeLength] == '\n') barcode[barcodeLength] = '\0';
+  return 0;
 
-  //Attempt to find user in database. If user is found, continue.
-  //Otherwise try again.
-  return getUser(barcode);
+error:
+return -1;
 }
 
-//Collects items the user is buying
-int purchase(struct User *user, char *barcode)
+int purchase(char *barcode)
 {
+  int rc = 0;
   struct Item *item = NULL;
 
-  int rc = 0;
-
-  //Get item with barcode
+  //get item
   item = getItem(barcode);
-  check(item != NULL, "Kunde inte hitta en vara med det ID.");
+  check(item != NULL, "Kunde inte hitta varan.");
 
-  if(user->balance - item->price < -100 && item->price > 0){
-    printf("Ditt saldo är %dkr. Max kredit 100kr. Stoppa i mer pengar.\n", user->balance);
-    return -1;    
+  //Check that user has sufficient balance
+  if(user->balance - item->price < -50 && item->price > 0){
+    setUi("top", "Ditt saldo är %dkr. Max kredit 50kr. Stoppa i mer pengar.\n", user->balance);
+    goto error;  
   }
 
-  //Log transaction
-  rc = addTransaction(user, item);
-  check(rc != -1, "Kunde inte logga transaktionen.");
-  
   //Adjust user balance
   rc = updateUserBalance(user, item);
   check(rc != -1, "Kunde inte uppdatera ditt saldo.");
 
-  printf("%s för %dkr\n", item->name, item->price);
-  printf("Saldo: %dkr\n", user->balance);
+  setUi("top", "%s för %dKr. Saldo: %d", item->name, item->price, user->balance);
 
+  //Cleanup
   free(item->name);
   free(item->barcode);
   free(item);
   return 0;
 
  error:
+  if(item->name) free(item->name);
+  if(item->barcode) free(item->barcode);
   if(item) free(item);
   return -1;
 }
 
 //Check which administrative function that was scanned and perform it.
-int administrate(char *str, struct User *user)
+int administrate(char *str)
 {
   int rc = 0;
 
-  if(strncmp(str, "adduser", MAX_DATA) == 0) rc = addUser(user);
+  if(strncmp(str, "logout", MAX_DATA) == 0) rc = logout();
+  else if(strncmp(str, "shutdown", MAX_DATA) == 0) exit(0);
+  else if(strncmp(str, "adduser", MAX_DATA) == 0) rc = addUser(user);
   else if(strncmp(str, "updatelogin", MAX_DATA) == 0) rc = changeUserLogin(user);
   else if(strncmp(str, "addbalance", MAX_DATA) == 0) rc = addBalance(user);
   else if(strncmp(str, "undotransaction", MAX_DATA) == 0) rc = undoTransaction(user);
@@ -124,129 +103,55 @@ int administrate(char *str, struct User *user)
   return -1;
 }
 
-//Cleanup user
-int cleanupUser(struct User *user)
-{
-  if(user->userId) free(user->userId);
-  if(user->name) free(user->name);
-  if(user->barcode) free(user->barcode);
-  if(user) free(user);
-  user = NULL;  
-  return 0;
-}
-
 int main(int argc, char *argv[])
 {
-  struct User *user = NULL;
+  user = NULL;
   char barcode[MAX_DATA] = "";
+  char *str;
+
   int barcodeLength = 0;
+  int adminFuncNum = -1;
   int rc = 0;
 
-  int adminFuncNum = 0;
-  char *str = "";
-
+  //Attempt to initialize the system
   rc = initialize();
-  check(rc != -1, "Kunde inte starta systemet. Se felmeddelande.");
-  printf("strecc v1.1 startat!\n");
+  check(rc != -1, "Kunde inte starta strecc. Se felmeddelande.");
 
-  rc = info("[STARTUP]");
-  check(rc != -1, "Loggning funkar inte.");
+  setUi("top", "strecc startat!");
+  setUi("bottom", "Logga in...");
+  refreshUi();
 
   while(1){
-    //Wait for login
-    while(user == NULL) user = login();
-  loggedIn:
-    rc = clearTerminal(11);
-    printf("Välkommen %s! Ditt saldo är %dkr.\n", user->name, user->balance);
-    clearTerminal(1);
-    info("[LOGIN]:%s (%s)", user->name, user->userId);
+    fgets(barcode, MAX_DATA, stdin);
 
+    //Remove newline
+    barcodeLength = strlen(barcode) - 1;
+    if(barcode[barcodeLength] == '\n') barcode[barcodeLength] = '\0'; 
 
-    while(1){
-    waitForBarcode:
-      clearTerminal(11);
-      printf("Skanna vara eller funktion...\n");
-
-      //Get barcode
-      fgets(barcode, MAX_DATA, stdin);
-  
-      //Remove newline
-      barcodeLength = strlen(barcode) - 1;
-      if(barcode[barcodeLength] == '\n') barcode[barcodeLength] = '\0'; 
-
-      //Check if the barcode is an administrative function
-      adminFuncNum = find(administrationfile, barcode, administrationIdColumn);
-      if(adminFuncNum != -1){
-        //Perform administrative function
-        str = getCell(administrationfile, adminFuncNum, administrationFunctionColumn);
-        if(strncmp(str, "logout", MAX_DATA) == 0){
-          free(str);
-          printf("Hejdå %s!\n", user->name);
-          info("[LOGOUT]:%s (%s)", user->name, user->userId);
-          goto cleanup;
-        }
-
-        else if(strncmp(str, "shutdown", MAX_DATA) == 0){
-          free(str);
-          printf("Hejdå %s!\n", user->name);
-          goto end;
-        }
-
-        else{
-          rc = administrate(str, user);
-          free(str);
-          goto waitForBarcode;
-        }          
-      }
-      
-      //If not, check if it's an item
-      else if(find(itemfile, barcode, itemBarcodeColumn) != -1){
-        //Make a purchase
-        rc = purchase(user, barcode);
-      }
-
-      //If not check if it's a user. Log out if it is.
-      else if(find(userfile, barcode, userBarcodeColumn) != -1){
-        printf("Hejdå %s!\n", user->name);
-        info("[LOGOUT]:%s (%s)", user->name, user->userId);
-        goto cleanup;
-      }
-      
-      //Otherwise print an error message
-      else printf("Finns ingen vara eller funktion med det ID.\n");
+    if(user == NULL){
+      if(isUser(barcode) != -1) login(barcode);
     }
 
-  cleanup:
-    //Cleanup user
-    rc = cleanupUser(user);
-    user = NULL;
-    
-  }
-  
- end:
-  //Cleanup user
-  rc = cleanupUser(user);
-  user = NULL;
+    else if(isUser(barcode) != -1) logout();
 
-  printf("strecc avslutat.\n");
-  info("[SHUTDOWN]");
-  return 0;
+    else if(isAdminfunc(barcode) != -1){
+      adminFuncNum = find(administrationfile, barcode, administrationIdColumn);
+      str = getCell(administrationfile, adminFuncNum, administrationFunctionColumn);
+      rc = administrate(str);
+      free(str);
+    }
+
+    else if(isItem(barcode) != -1) purchase(barcode);
+
+    else setUi("top", "Felaktig input.");
+
+    refreshUi();
+  }
 
  error:
   return -1;
 }
 
-/*
-- Undo ger inte tillbaks pengarna.
-- Man borde inte få ha samma login som en varas streckkod eller som en
-- adminfunktion.
-- Man borde inte få lägga till en ny vara med en streckkod som hör till en användare eller adminfunktion.
 
-- Kunna byta loginId
-- Inga köp om under -100 i saldo.
-- Undo tar samma användares transaktion
-- Kunna lägga in en fri summa. Istället för att strecka en hundring t.ex.
-- Random info på skärmen. Köra en till fil med statistik.
-- Om man skannar en produkt när den inte är inloggad, visa info för produkten. Pris, statistik osv.
-- Töm termineln vid logout.
-*/
+
+
