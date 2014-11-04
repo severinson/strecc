@@ -55,7 +55,7 @@ int undoTransaction(struct User *user)
   sprintf(balanceString, "%d", user->balance);
   rc = editCell(userfile, userRow, userBalanceColumn, balanceString);
 
-  setUi("top", "Köp av %s ångrat. Nytt saldo: %d", itemName, user->balance);
+  setUi("top", "Köp av %s ångrat.\nSaldo: %dKr", itemName, user->balance);
   setUi("bottom", "Skanna vara eller funktion...");
 
   //Log

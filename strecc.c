@@ -21,7 +21,7 @@ int login(char *userlogin)
 
   user = getUser(userlogin);
   check(user != NULL, "Lyckades inte logga in.");
-  setUi("top", "Välkommen %s!", user->name);
+  setUi("top", "Välkommen %s!\nSaldo: %dKr", user->name, user->balance);
   setUi("bottom", "Skanna vara eller funktion...");
 
   return 0;
@@ -67,8 +67,39 @@ int purchase(char *barcode)
   rc = updateUserBalance(user, item);
   check(rc != -1, "Kunde inte uppdatera ditt saldo.");
 
-  setUi("top", "%s för %dKr. Saldo: %d", item->name, item->price, user->balance);
+  //Log transaction
+  rc = addTransaction(user, item);
+  check(rc != -1, "Kunde inte logga transaktionen.");
 
+  setUi("top", "%s för %dKr\nSaldo: %dKr", item->name, item->price, user->balance);
+  setUi("bottom", "Skanna vara eller funktion...");
+
+  //Cleanup
+  free(item->name);
+  free(item->barcode);
+  free(item);
+  return 0;
+
+ error:
+  if(item->name) free(item->name);
+  if(item->barcode) free(item->barcode);
+  if(item) free(item);
+  return -1;
+}
+
+int displayItem(char *barcode)
+{
+  int rc = 0;
+  struct Item *item = NULL;
+
+  //Get item from db
+  item = getItem(barcode);
+  check(item != NULL, "Kunde inte hitta varan.");
+
+  //Display item details
+  setUi("top", "%s för %dKr", item->name, item->price);
+  setUi("bottom", "Logga in...");
+  
   //Cleanup
   free(item->name);
   free(item->barcode);
@@ -130,6 +161,8 @@ int main(int argc, char *argv[])
 
     if(user == NULL){
       if(isUser(barcode) != -1) login(barcode);
+      else if(isItem(barcode) != -1) displayItem(barcode);
+      else setUi("top", "Ingen användare eller vara med den koden.");
     }
 
     else if(isUser(barcode) != -1) logout();
@@ -143,7 +176,7 @@ int main(int argc, char *argv[])
 
     else if(isItem(barcode) != -1) purchase(barcode);
 
-    else setUi("top", "Felaktig input.");
+    else setUi("top", "wat?");
 
     refreshUi();
   }

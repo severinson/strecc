@@ -79,5 +79,11 @@ v1.3
 v1.4
 ---------------------------------
 - Info om en vara visas om den skannas då ingen är inloggad.
+- "Felaktig input" ändrat till "wat?"
+- Ändrat texten som skrivs ut på lite olika ställen för att ge en mer enhetlig användarupplevelse.
+- Fixat en bugg där transaktioner inte loggades.
 
 - When an item is scanned when not logged in the item details are displayed.
+- "Felaktig input" changecd to "wat?".
+- Cleaned up text display at various places.
+- Fixed a bug where transaction weren't logged.
