@@ -33,3 +33,8 @@ v1.3
 - Mainfilen helt omskriven i städsyfte.
 - Förberedelser för att kunna byta csv-bibliotek i framtiden.
 - Modularisering för att enklare kunna arbeta flera på programmet.
+
+---------------------------------
+v1.4
+---------------------------------
+- Info om en vara visas om den skannas då ingen är inloggad.
