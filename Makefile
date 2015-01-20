@@ -1,9 +1,26 @@
-cflags=-g -Wall
+#
+# Sample Makefile for lsh
+# lab1 in Operating System course
+#
+BIN=	strecc
 
-all: strecc
+SRCS=	$(wildcard *.c)
+OBJS=	$(patsubst %.c,%.o,$(SRCS))
 
-strecc: ccsv.o logging.o db.o administration.o ui.o init.o
+CC=	gcc
+CFLAGS= -g -Wall -pthread
+
+LIBS= -lreadline -ltermcap
+
+.SUFFIXES: .c .o
+
+.c.o:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+all:	$(BIN)
+
+strecc:	$(OBJS)
+	$(CC) $(CFLAGS) -o $(BIN) $(OBJS) $(LIBS)
 
 clean:
-	rm -f *.o
-	rm -f strecc
+	-rm -f $(OBJS) strecc

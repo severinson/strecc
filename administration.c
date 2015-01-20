@@ -5,6 +5,7 @@
 #include "administration.h"
 #include "logging.h"
 #include "ccsv.h"
+#include "ui.h"
 
 //Will undo the last transaction for user
 int undoTransaction(struct User *user)
@@ -236,6 +237,7 @@ int changeUserLogin(struct User *user)
   check(rc != -1, "Lyckades inte uppdatera login.");
 
   setUi("top", "Login uppdaterat");
+  setUi("bottom", "Skanna vara eller funktion...");
 
   free(userLogin);
 
@@ -301,6 +303,7 @@ int addBalance(struct User *user)
   check(rc != -1, "Lyckades inte uppdatera balans.");
 
   setUi("top", "Saldo uppdaterat. Nytt saldo: %d", user->balance);
+  setUi("bottom", "Skanna vara eller funktion...");
 
   free(amountString);
   return 0;
@@ -443,6 +446,7 @@ int changeItemBarcode(struct Item *item)
   //Collect info
   //Log change
   //Update item barcode
+  return 0;
 }
 
 //Remove a user
@@ -451,6 +455,7 @@ int removeUser()
   //Collect username
   //Log user removal
   //Remove user row
+  return 0;
 }
 
 //Remove an item
@@ -459,4 +464,5 @@ int removeItem()
   //Collect item barcode
   //Log item removal
   //Delete item row
+  return 0;
 }

@@ -2,7 +2,7 @@
 #define _strecc_h
 
 //Run administrative function
-int administrate(char *str, struct User *user);
+int administrate(char *str);
 
 #endif
 

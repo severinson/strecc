@@ -15,4 +15,6 @@ int undoTransaction();
 
 //Clear terminal
 int clearTerminal(int n);
+
+int info(const char *str, ...);
 #endif

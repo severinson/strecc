@@ -114,5 +114,5 @@ int clearTerminal(int n)
 //Log a message to the strecc log. Also log which user caused it.
 int logAdminFunction(struct User *user, char *message)
 {
-  
+  return 0;
 }

@@ -2,17 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include "db.h"
 #include "dbg.h"
 #include "ccsv.h"
-//#include "strecc.h"
+#include "strecc.h"
 #include "logging.h"
 #include "administration.h"
 #include "init.h"
 #include "ui.h"
 
 struct User *user;
+int logout_clock;
+
 
 //Login user with corresponding login
 int login(char *userlogin)
@@ -23,6 +27,7 @@ int login(char *userlogin)
   check(user != NULL, "Lyckades inte logga in.");
   setUi("top", "Välkommen %s!\nSaldo: %dKr", user->name, user->balance);
   setUi("bottom", "Skanna vara eller funktion...");
+  logout_clock = 10;
 
   return 0;
 
@@ -35,6 +40,7 @@ int logout()
   check(user != NULL, "Kan inte logga ut. Ingen användare är inloggad.");
   setUi("top", "Hejdå %s!", user->name);
   setUi("bottom", "Logga in...");
+  refreshUi();
 
   if(user->userId) free(user->userId);
   if(user->name) free(user->name);
@@ -89,7 +95,6 @@ int purchase(char *barcode)
 
 int displayItem(char *barcode)
 {
-  int rc = 0;
   struct Item *item = NULL;
 
   //Get item from db
@@ -116,7 +121,6 @@ int displayItem(char *barcode)
 //Check which administrative function that was scanned and perform it.
 int administrate(char *str)
 {
-  int rc = 0;
 
   if(strncmp(str, "logout", MAX_DATA) == 0) rc = logout();
   else if(strncmp(str, "shutdown", MAX_DATA) == 0) exit(0);
@@ -130,8 +134,20 @@ int administrate(char *str)
 
   return 0;
 
- error:
-  return -1;
+}
+
+void *logout_timer(void *param);
+
+void *logout_timer(void *param)
+{
+  while(1){
+    while(logout_clock > 0){
+      sleep(6);
+      logout_clock--;
+    }
+    if(user) logout();
+    while(!user) sleep(1);
+  }
 }
 
 int main(int argc, char *argv[])
@@ -148,11 +164,19 @@ int main(int argc, char *argv[])
   rc = initialize();
   check(rc != -1, "Kunde inte starta strecc. Se felmeddelande.");
 
-  setUi("top", "strecc startat!");
+  //Start logout timer
+  logout_clock = 10;
+  pthread_t tid;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_create(&tid, &attr, logout_timer, "");
+
+  setUi("top", "strecc v1.4.3 startat!");
   setUi("bottom", "Logga in...");
   refreshUi();
 
   while(1){
+    if(user) logout_clock = 10; //Reset logout timer
     fgets(barcode, MAX_DATA, stdin);
 
     //Remove newline
@@ -178,6 +202,8 @@ int main(int argc, char *argv[])
 
     else setUi("top", "wat?");
 
+    if(user) setUi("bottom", "Skanna vara eller funktion...");
+    else setUi("bottom", "Logga in...");
     refreshUi();
   }
 

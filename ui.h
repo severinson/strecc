@@ -1,4 +1,4 @@
-#define terminalRows 12
+#define terminalRows 15
 #define terminalColumns 40
 
 struct Ui
