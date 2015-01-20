@@ -10,7 +10,7 @@ OBJS=	$(patsubst %.c,%.o,$(SRCS))
 CC=	gcc
 CFLAGS= -g -Wall -pthread
 
-LIBS= -lreadline -ltermcap
+LIBS= -ltermcap
 
 .SUFFIXES: .c .o
 

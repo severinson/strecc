@@ -121,7 +121,7 @@ int displayItem(char *barcode)
 //Check which administrative function that was scanned and perform it.
 int administrate(char *str)
 {
-
+  int rc = 0;
   if(strncmp(str, "logout", MAX_DATA) == 0) rc = logout();
   else if(strncmp(str, "shutdown", MAX_DATA) == 0) exit(0);
   else if(strncmp(str, "adduser", MAX_DATA) == 0) rc = addUser(user);
@@ -164,12 +164,14 @@ int main(int argc, char *argv[])
   rc = initialize();
   check(rc != -1, "Kunde inte starta strecc. Se felmeddelande.");
 
+  /*
   //Start logout timer
   logout_clock = 10;
   pthread_t tid;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_create(&tid, &attr, logout_timer, "");
+  */
 
   setUi("top", "strecc v1.4.3 startat!");
   setUi("bottom", "Logga in...");
